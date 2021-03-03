@@ -13,7 +13,7 @@
  */
 package io.trino.plugin.kudu;
 
-import io.trino.testing.AbstractTestDistributedQueries;
+import io.trino.testing.BaseConnectorTest;
 import io.trino.testing.MaterializedResult;
 import io.trino.testing.sql.TestTable;
 import org.testng.SkipException;
@@ -24,9 +24,10 @@ import java.util.Optional;
 import static io.trino.spi.type.VarcharType.VARCHAR;
 import static io.trino.testing.MaterializedResult.resultBuilder;
 import static io.trino.testing.assertions.Assert.assertEquals;
+import static org.assertj.core.api.Assertions.assertThat;
 
-public abstract class BaseKuduDistributedQueries
-        extends AbstractTestDistributedQueries
+public abstract class BaseKuduConnectorTest
+        extends BaseConnectorTest
 {
     @Override
     protected boolean supportsViews()
@@ -134,6 +135,50 @@ public abstract class BaseKuduDistributedQueries
     {
         // TODO (https://github.com/trinodb/trino/issues/3477) enable the test
         throw new SkipException("TODO");
+    }
+
+    @Override
+    @Test
+    public void testDescribeTable()
+    {
+        MaterializedResult expectedColumns = MaterializedResult.resultBuilder(getQueryRunner().getDefaultSession(), VARCHAR, VARCHAR, VARCHAR, VARCHAR)
+                .row("orderkey", "bigint", "nullable, encoding=auto, compression=default", "")
+                .row("custkey", "bigint", "nullable, encoding=auto, compression=default", "")
+                .row("orderstatus", "varchar", "nullable, encoding=auto, compression=default", "")
+                .row("totalprice", "double", "nullable, encoding=auto, compression=default", "")
+                .row("orderdate", "varchar", "nullable, encoding=auto, compression=default", "")
+                .row("orderpriority", "varchar", "nullable, encoding=auto, compression=default", "")
+                .row("clerk", "varchar", "nullable, encoding=auto, compression=default", "")
+                .row("shippriority", "integer", "nullable, encoding=auto, compression=default", "")
+                .row("comment", "varchar", "nullable, encoding=auto, compression=default", "")
+                .build();
+        MaterializedResult actualColumns = computeActual("DESCRIBE orders");
+        assertEquals(actualColumns, expectedColumns);
+    }
+
+    @Override
+    @Test
+    public void testShowCreateTable()
+    {
+        assertThat((String) computeActual("SHOW CREATE TABLE orders").getOnlyValue())
+                .matches("CREATE TABLE \\w+\\.\\w+\\.orders \\Q(\n" +
+                        "   orderkey bigint WITH ( nullable = true ),\n" +
+                        "   custkey bigint WITH ( nullable = true ),\n" +
+                        "   orderstatus varchar WITH ( nullable = true ),\n" +
+                        "   totalprice double WITH ( nullable = true ),\n" +
+                        "   orderdate varchar WITH ( nullable = true ),\n" +
+                        "   orderpriority varchar WITH ( nullable = true ),\n" +
+                        "   clerk varchar WITH ( nullable = true ),\n" +
+                        "   shippriority integer WITH ( nullable = true ),\n" +
+                        "   comment varchar WITH ( nullable = true )\n" +
+                        ")\n" +
+                        "WITH (\n" +
+                        "   number_of_replicas = 3,\n" +
+                        "   partition_by_hash_buckets = 2,\n" +
+                        "   partition_by_hash_columns = ARRAY['row_uuid'],\n" +
+                        "   partition_by_range_columns = ARRAY['row_uuid'],\n" +
+                        "   range_partitions = '[{\"lower\":null,\"upper\":null}]'\n" +
+                        ")");
     }
 
     @Override

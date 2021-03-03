@@ -20,14 +20,14 @@ import java.util.Optional;
 
 import static io.trino.plugin.kudu.KuduQueryRunnerFactory.createKuduQueryRunnerTpch;
 
-public class TestKuduDistributedQueries
-        extends BaseKuduDistributedQueries
+public class TestKuduConnectorTestLatest
+        extends BaseKuduConnectorTest
 {
     @Override
     protected QueryRunner createQueryRunner()
             throws Exception
     {
-        TestingKuduServer kuduServer = closeAfterClass(new TestingKuduServer());
+        TestingKuduServer kuduServer = closeAfterClass(new TestingKuduServer("1.14.0"));
         return createKuduQueryRunnerTpch(kuduServer, Optional.of(""), TpchTable.getTables());
     }
 }
